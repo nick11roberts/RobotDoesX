@@ -2,13 +2,13 @@ from __future__ import print_function
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
 from keras.layers import LSTM, GRU
-from keras.optimizers import Nadam
+from keras.optimizers import RMSprop
 from keras.utils.data_utils import get_file
 import numpy as np
 import random
 import sys
 
-text = open('michellephan.txt').read().lower()
+text = open('data/makeuptutorial.txt').read().lower()
 print('corpus length:', len(text))
 
 chars = sorted(list(set(text)))
@@ -41,7 +41,7 @@ model.add(LSTM(128, input_shape=(maxlen, len(chars)), consume_less='cpu', unroll
 model.add(Dense(len(chars)))
 model.add(Activation('softmax'))
 
-optimizer = Nadam()
+optimizer = RMSprop(lr=0.01)
 model.compile(loss='categorical_crossentropy', optimizer=optimizer)
 
 # Print model summary
