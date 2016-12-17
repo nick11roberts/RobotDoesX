@@ -1,4 +1,4 @@
-# youtube-lstm
+# RobotDoesX
 An LSTM neural network initially content with watching YouTube videos all day suddenly becomes inspired to create content.
 
 LSTM written in Keras, YouTube web scraper written in Scrapy
