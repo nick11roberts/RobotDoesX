@@ -1,7 +1,8 @@
 from __future__ import print_function
-from keras.models import Sequential
+from keras.models import Sequential, Graph
 from keras.layers import Dense, Activation, Dropout
 from keras.layers import LSTM, GRU
+from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Nadam, RMSprop
 from keras.utils.data_utils import get_file
 from datetime import datetime
@@ -42,18 +43,31 @@ print('nb sequences:', len(sentences))
 
 print('Vectorization...')
 X = np.zeros((len(sentences), maxlen, len(chars)), dtype=np.bool)
-y = np.zeros((len(sentences), len(chars)), dtype=np.bool)
+y = np.zeros((len(sentences), maxlen, len(chars)), dtype=np.bool)
 for i, sentence in enumerate(sentences):
     for t, char in enumerate(sentence):
         X[i, t, char_indices[char]] = 1
-    y[i, char_indices[next_chars[i]]] = 1
+        y[i, t, char_indices[next_chars[i]]] = 1
 
 
 print('Build model...')
+'''
 model = Sequential()
 model.add(LSTM(128, input_shape=(maxlen, len(chars)), consume_less='cpu', unroll=True))
 model.add(Dense(len(chars)))
 model.add(Activation('softmax'))
+'''
+
+model=Graph()
+model.add_input(input_shape=(maxlen, len(chars)), name='input')
+model.add_node(LSTM(128, return_sequences=True, init= 'orthogonal'), input='input', name='lstm1')
+model.add_node(Dropout(0.5), input='lstm1', name='drop1')
+model.add_node(LSTM(128, return_sequences=True, init= 'orthogonal'), input='drop1', name='lstm2')
+model.add_node(Dropout(0.5), input='lstm2', name='drop2')
+model.add_node(TimeDistributed(Dense(len(chars), init= 'orthogonal')), input='drop2', name='fc1')
+model.add_node(Dropout(0.5), input='fc1', name='drop3')
+model.add_node(TimeDistributed(Dense(len(chars), activation='softmax', init= 'orthogonal')), inputs=['drop3','input'], merge_mode='sum', name='fc2')
+model.add_output(input='fc2', name='output')
 
 optimizer = RMSprop(lr=0.01)
 model.compile(loss='categorical_crossentropy', optimizer=optimizer)
@@ -76,7 +90,7 @@ for iteration in range(1, 6000):
     print()
     print('-' * 50)
     print('Iteration', iteration)
-    model.fit(X, y, batch_size=128, nb_epoch=1)
+    model.fit({'input':X, 'output':y}, nb_epoch=1)
 
     # Save model to filesystem
     model.save_weights(file_path)
