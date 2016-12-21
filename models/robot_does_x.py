@@ -2,7 +2,7 @@ from __future__ import print_function
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Dropout
 from keras.layers import LSTM, GRU
-from keras.optimizers import Nadam
+from keras.optimizers import Nadam, RMSprop
 from keras.utils.data_utils import get_file
 from datetime import datetime
 import numpy as np
@@ -18,11 +18,11 @@ file_path = "model_latest.hdf5"
 
 # Create instance id using current time
 instance_id = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-instance_id = 'single_lstm_nadam_60_' + instance_id
+instance_id = 'single_lstm_rmsprop_60_' + instance_id
 print("instance_id: ", instance_id)
 
 # Open dataset
-text = open('data/test.txt').read().lower()
+text = open('data/makeuptutorial.txt').read().lower()
 print('corpus length:', len(text))
 
 chars = sorted(list(set(text)))
@@ -55,7 +55,7 @@ model.add(LSTM(128, input_shape=(maxlen, len(chars)), consume_less='cpu', unroll
 model.add(Dense(len(chars)))
 model.add(Activation('softmax'))
 
-optimizer = Nadam()
+optimizer = RMSprop(lr=0.01)
 model.compile(loss='categorical_crossentropy', optimizer=optimizer)
 
 # Print model summary
@@ -72,7 +72,7 @@ def sample(preds, temperature=1.0):
     return np.argmax(probas)
 
 # train the model, output generated text after each iteration
-for iteration in range(1, 60):
+for iteration in range(1, 6000):
     print()
     print('-' * 50)
     print('Iteration', iteration)
