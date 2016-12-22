@@ -1,7 +1,8 @@
 from __future__ import print_function
-from keras.models import Sequential, Graph
+from keras.models import Sequential, Model
 from keras.layers import Dense, Activation, Dropout
 from keras.layers import LSTM, GRU
+from keras.layers import merge, Input
 from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import Nadam, RMSprop
 from keras.utils.data_utils import get_file
@@ -23,7 +24,7 @@ instance_id = 'single_lstm_rmsprop_60_' + instance_id
 print("instance_id: ", instance_id)
 
 # Open dataset
-text = open('data/makeuptutorial.txt').read().lower()
+text = open('data/test.txt').read().lower()
 print('corpus length:', len(text))
 
 chars = sorted(list(set(text)))
@@ -52,24 +53,23 @@ for i, sentence in enumerate(sentences):
 
 print('Build model...')
 '''
-model = Sequential()
-model.add(LSTM(128, input_shape=(maxlen, len(chars)), consume_less='cpu', unroll=True))
-model.add(Dense(len(chars)))
-model.add(Activation('softmax'))
-'''
-
 model=Graph()
 model.add_input(input_shape=(maxlen, len(chars)), name='input')
 model.add_node(LSTM(128, return_sequences=True, init= 'orthogonal'), input='input', name='lstm1')
-model.add_node(Dropout(0.5), input='lstm1', name='drop1')
-model.add_node(LSTM(128, return_sequences=True, init= 'orthogonal'), input='drop1', name='lstm2')
-model.add_node(Dropout(0.5), input='lstm2', name='drop2')
-model.add_node(TimeDistributed(Dense(len(chars), init= 'orthogonal')), input='drop2', name='fc1')
-model.add_node(Dropout(0.5), input='fc1', name='drop3')
-model.add_node(TimeDistributed(Dense(len(chars), activation='softmax', init= 'orthogonal')), inputs=['drop3','input'], merge_mode='sum', name='fc2')
+model.add_node(LSTM(128, return_sequences=True, init= 'orthogonal'), input='lstm1', name='lstm2')
+model.add_node(TimeDistributed(Dense(len(chars), init= 'orthogonal')), input='lstm2', name='fc1')
+model.add_node(TimeDistributed(Dense(len(chars), activation='softmax', init= 'orthogonal')), inputs=['fc1','input'], merge_mode='sum', name='fc2')
 model.add_output(input='fc2', name='output')
+'''
+input_1 = Input(shape=(maxlen, len(chars)))
+lstm_1 = LSTM(128, return_sequences=True, unroll=True, consume_less='cpu', init= 'orthogonal')(input_1)
+lstm_2 = LSTM(128, return_sequences=True, unroll=True, consume_less='cpu', init= 'orthogonal')(lstm_1)
+timedistributed_1 = TimeDistributed(Dense(len(chars), init= 'orthogonal'))(lstm_2)
+merge_1 = merge([input_1, timedistributed_1], mode='sum')
+timedistributed_2 = TimeDistributed(Dense(len(chars), activation='softmax', init='orthogonal'))(merge_1)
+model = Model(input=input_1, output=timedistributed_2)
 
-optimizer = RMSprop(lr=0.01)
+optimizer = Nadam()
 model.compile(loss='categorical_crossentropy', optimizer=optimizer)
 
 # Print model summary
@@ -86,11 +86,11 @@ def sample(preds, temperature=1.0):
     return np.argmax(probas)
 
 # train the model, output generated text after each iteration
-for iteration in range(1, 6000):
+for iteration in range(1, 151):
     print()
     print('-' * 50)
     print('Iteration', iteration)
-    model.fit({'input':X, 'output':y}, nb_epoch=1)
+    model.fit(X, y, nb_epoch=1)
 
     # Save model to filesystem
     model.save_weights(file_path)
@@ -107,7 +107,7 @@ for iteration in range(1, 6000):
 
     start_index = random.randint(0, len(text) - maxlen - 1)
 
-    if iteration % 1 == 0:
+    if iteration % 500 == 0:
         for diversity in [0.2, 0.5, 1.0, 1.2]:
             print()
             print('----- diversity:', diversity)
@@ -123,7 +123,7 @@ for iteration in range(1, 6000):
                 for t, char in enumerate(sentence):
                     x[0, t, char_indices[char]] = 1.
 
-                preds = model.predict(x, verbose=0)[0]
+                preds = model.predict(x, verbose=0)[0][-1]
                 next_index = sample(preds, diversity)
                 next_char = indices_char[next_index]
 
