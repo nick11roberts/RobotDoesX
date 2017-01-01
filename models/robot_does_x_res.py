@@ -20,11 +20,11 @@ file_path = "model_latest.hdf5"
 
 # Create instance id using current time
 instance_id = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-instance_id = 'single_lstm_rmsprop_60_' + instance_id
+instance_id = 'reslstm_nadam_20_' + instance_id
 print("instance_id: ", instance_id)
 
 # Open dataset
-text = open('data/test.txt').read().lower()
+text = open('data/zoella.txt').read().lower()
 print('corpus length:', len(text))
 
 chars = sorted(list(set(text)))
@@ -63,8 +63,8 @@ model.add_output(input='fc2', name='output')
 '''
 input_1 = Input(shape=(maxlen, len(chars)))
 lstm_1 = LSTM(128, return_sequences=True, unroll=True, consume_less='cpu', init= 'orthogonal')(input_1)
-lstm_2 = LSTM(128, return_sequences=True, unroll=True, consume_less='cpu', init= 'orthogonal')(lstm_1)
-timedistributed_1 = TimeDistributed(Dense(len(chars), init= 'orthogonal'))(lstm_2)
+#lstm_2 = LSTM(128, return_sequences=True, unroll=True, consume_less='cpu', init= 'orthogonal')(lstm_1)
+timedistributed_1 = TimeDistributed(Dense(len(chars), init= 'orthogonal'))(lstm_1)
 merge_1 = merge([input_1, timedistributed_1], mode='sum')
 timedistributed_2 = TimeDistributed(Dense(len(chars), activation='softmax', init='orthogonal'))(merge_1)
 model = Model(input=input_1, output=timedistributed_2)
@@ -86,7 +86,7 @@ def sample(preds, temperature=1.0):
     return np.argmax(probas)
 
 # train the model, output generated text after each iteration
-for iteration in range(1, 151):
+for iteration in range(1, 21):
     print()
     print('-' * 50)
     print('Iteration', iteration)
@@ -107,7 +107,7 @@ for iteration in range(1, 151):
 
     start_index = random.randint(0, len(text) - maxlen - 1)
 
-    if iteration % 500 == 0:
+    if iteration % 1 == 0:
         for diversity in [0.2, 0.5, 1.0, 1.2]:
             print()
             print('----- diversity:', diversity)

@@ -18,11 +18,11 @@ file_path = "model_latest.hdf5"
 
 # Create instance id using current time
 instance_id = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-instance_id = 'single_lstm_rmsprop_60_' + instance_id
+instance_id = 'single_lstm_nadam_savestate_60_' + instance_id
 print("instance_id: ", instance_id)
 
 # Open dataset
-text = open('data/makeuptutorial.txt').read().lower()
+text = open('data/data_clean.txt').read().lower()
 print('corpus length:', len(text))
 
 chars = sorted(list(set(text)))
@@ -32,7 +32,7 @@ indices_char = dict((i, c) for i, c in enumerate(chars))
 
 # cut the text in semi-redundant sequences of maxlen characters
 maxlen = 40
-step = 3
+step = 40
 sentences = []
 next_chars = []
 for i in range(0, len(text) - maxlen, step):
@@ -51,11 +51,11 @@ for i, sentence in enumerate(sentences):
 
 print('Build model...')
 model = Sequential()
-model.add(LSTM(128, input_shape=(maxlen, len(chars)), consume_less='cpu', unroll=True))
+model.add(LSTM(128, input_shape=(maxlen, len(chars)), consume_less='cpu', unroll=True, stateful=True))
 model.add(Dense(len(chars)))
 model.add(Activation('softmax'))
 
-optimizer = RMSprop(lr=0.01)
+optimizer = Nadam()
 model.compile(loss='categorical_crossentropy', optimizer=optimizer)
 
 # Print model summary
