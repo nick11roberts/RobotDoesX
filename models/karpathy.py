@@ -11,11 +11,11 @@ char_to_idx = {ch: i for (i, ch) in enumerate(sorted(list(set(text))))}
 idx_to_char = {i: ch for (ch, i) in char_to_idx.items()}
 vocab_size = len(char_to_idx)
 
-print 'Working on %d characters (%d unique)' % (len(text), vocab_size)
+print('Working on %d characters (%d unique)' % (len(text), vocab_size))
 
 SEQ_LEN = 64
 BATCH_SIZE = 16
-BATCH_CHARS = len(text) / BATCH_SIZE
+BATCH_CHARS = len(text) // BATCH_SIZE
 LSTM_SIZE = 256
 LAYERS = 3
 
@@ -65,10 +65,10 @@ def build_model(infer):
     return model
 
 
-print 'Building model.'
+print('Building model.')
 training_model = build_model(infer=False)
 test_model = build_model(infer=True)
-print '... done'
+print('... done')
 
 
 def sample(epoch, sample_chars=256, primer_text='and the '):
@@ -88,12 +88,12 @@ def sample(epoch, sample_chars=256, primer_text='and the '):
         sample = np.random.choice(range(vocab_size), p=softmax)
         sampled.append(sample)
 
-    print ''.join([idx_to_char[c] for c in sampled])
+    print(''.join([idx_to_char[c] for c in sampled]))
 
 for epoch in range(100):
     for i, (x, y) in enumerate(read_batches(text)):
         loss = training_model.train_on_batch(x, y)
-        print epoch, i, loss
+        print(epoch, i, loss)
 
         if i % 1000 == 0:
             training_model.save_weights('/tmp/keras_char_rnn.%d.h5' % epoch,
